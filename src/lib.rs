@@ -1,4 +1,4 @@
-use lexopt::prelude::*;
+use inquire::Text;
 use std::{fs, path::PathBuf};
 
 use itertools::Itertools;
@@ -6,11 +6,10 @@ use jwalk::{
     rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator},
     WalkDir,
 };
-use log::error;
 
-pub struct Args {
-    pub dir: String,
-}
+use std::process::exit;
+
+mod copied_autocomple;
 
 pub struct Cleaner {
     path: PathBuf,
@@ -18,23 +17,19 @@ pub struct Cleaner {
     threads: usize,
 }
 
-pub fn read_arg() -> Result<Args, lexopt::Error> {
-    let mut dir = None;
-    let mut parser = lexopt::Parser::from_env();
+pub fn read_arg() -> String {
+    let dir = Text::new("\nThe_nuker is a program to execute your file (hopefully) quickly original code was made by Dillon Beliveau on github: https://github.com/Dillonb/nmuidi . To get started type a directory to delete\n\x1b[1m\x1b[33mEnter\x1b[0m folder's directory to delete\n")
+        .with_help_message("Use arrow keys to navigate folders")
+        .with_autocomplete(copied_autocomple::FilePathCompleter::default())
+        .prompt();
 
-    while let Some(arg) = parser.next()? {
-        match arg {
-            Value(val) if dir.is_none() => {
-                dir = Some(val.string()?);
-            }
-
-            _ => return Err(arg.unexpected())
+    match dir {
+        Ok(dir) => dir,
+        Err(_) => {
+            println!("\n\x1b[31mError\x1b[0m Something went wrong but I don't know what went wrong lol");
+            exit(1);
         }
     }
-
-    Ok(Args{
-        dir: dir.ok_or("The_nuker is a program to execute your file (hopefully) quickly original code was made by Dillon Beliveau on github: https://github.com/Dillonb/nmuidi . To get started type a directory to delete")?,
-    })
 }
 
 impl Cleaner {
@@ -63,7 +58,8 @@ impl Cleaner {
                 .map(|(dir, _group)| dir)
                 .for_each(|dir| {
                     if let Err(e) = fs::remove_dir_all(dir.as_path()) {
-                        println!("Error removing directory {}: {e}", dir.display());
+                        println!("\n\x1b[31mError\x1b[0m removing directory {}: {e}\n", dir.display());
+                        exit(1);
                     }
                 });
         }
@@ -87,18 +83,23 @@ impl Cleaner {
                             #[allow(clippy::permissions_set_readonly_false)]
                             perm.set_readonly(false);
                             fs::set_permissions(&path, perm).unwrap_or_else(|e| {
-                                error!("Error making {} write-accessable: {e}", path.display());
+                                println!("\n\x1b[31mError\x1b[0m making {} write-accessable: {e}\n", path.display());
+                                exit(1);
                             });
                         }
                         if f_type.is_file() || f_type.is_symlink() {
                             fs::remove_file(&path).unwrap_or_else(|e| {
-                                error!("Failed to remove file {}: {e}", path.display());
+                                println!("\n\x1b[31mFailed\x1b[0m to remove file {}: {e}\n", path.display());
+                                exit(1);
                             });
                         } else if f_type.is_dir() {
                             return Some((path, entry.depth));
                         }
                     }
-                    Err(error) => error!("Error processing directory entry: {error}"),
+                    Err(error) => {
+                        println!("\n\x1b[31mError\x1b[0m processing directory entry: {error}\n");
+                        exit(1);
+                    }
                 }
                 None
             })
