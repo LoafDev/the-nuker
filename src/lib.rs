@@ -1,15 +1,10 @@
-use inquire::Text;
-use std::{fs, path::PathBuf};
-
+use inquire::{error::InquireError, Select};
+use std::{process::exit ,fs::{self}, path::{PathBuf}};
 use itertools::Itertools;
 use jwalk::{
     rayon::prelude::{IntoParallelRefIterator, ParallelBridge, ParallelIterator},
     WalkDir,
 };
-
-use std::process::exit;
-
-mod copied_autocomple;
 
 pub struct Cleaner {
     path: PathBuf,
@@ -17,14 +12,26 @@ pub struct Cleaner {
     threads: usize,
 }
 
-pub fn read_arg() -> String {
-    let dir = Text::new("\nThe_nuker is a program to execute your file (hopefully) quickly original code was made by Dillon Beliveau on github: https://github.com/Dillonb/nmuidi . To get started type a directory to delete\n\x1b[1m\x1b[33mEnter\x1b[0m folder's directory to delete\n")
-        .with_help_message("Use arrow keys to navigate folders")
-        .with_autocomplete(copied_autocomple::FilePathCompleter::default())
-        .prompt();
+fn recurse_file() -> std::io::Result<Vec<String>> {
+    let mut buf = vec![];
 
-    match dir {
-        Ok(dir) => dir,
+    let entries = std::fs::read_dir("./")?;
+
+    for entry in entries {
+        let entry = entry?;
+        buf.push(entry.path().to_string_lossy().to_string());
+    }
+    Ok(buf)
+}
+
+pub fn read_arg() -> String {
+    let option = recurse_file(); //vector off all folders and file in the current directory
+
+    let answer: Result<String, InquireError> = Select::new("Select a folder or file to delete", option.expect("\n\x1b[31mError\x1b[0m something went wrong dang it\n"))
+    .prompt();
+
+    match answer {
+        Ok(path) => path,
         Err(_) => {
             println!("\n\x1b[31mError\x1b[0m Something went wrong but I don't know what went wrong lol");
             exit(1);
