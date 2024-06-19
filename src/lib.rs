@@ -1,4 +1,4 @@
-use inquire::{error::InquireError, Select};
+use inquire::{error::InquireError, Select, ui::{RenderConfig, Attributes, Color, Styled, StyleSheet}};
 use std::{process::exit ,fs::{self}, path::{PathBuf}};
 use itertools::Itertools;
 use jwalk::{
@@ -27,13 +27,22 @@ fn recurse_file() -> std::io::Result<Vec<String>> {
 pub fn read_arg() -> String {
     let option = recurse_file(); //vector off all folders and file in the current directory
 
+    let style_sheet = StyleSheet::default()
+    .with_fg(Color::LightCyan)
+    .with_attr(Attributes::ITALIC); //style sheet for slected options
+
+    let styled_option = Styled::new("->").with_style_sheet(style_sheet); //make a new style prefix for currently highlighted option
+
     let answer: Result<String, InquireError> = Select::new("Select a folder or file to delete", option.expect("\n\x1b[31mError\x1b[0m something went wrong dang it\n"))
+    .with_page_size(20)
+    .with_help_message("Please choose wisely!")
+    .with_render_config(RenderConfig::default().with_highlighted_option_prefix(styled_option).with_selected_option(Some(style_sheet)).with_scroll_up_prefix(Styled::new("^").with_style_sheet(style_sheet)).with_scroll_down_prefix(Styled::new("v").with_style_sheet(style_sheet)))
     .prompt();
 
     match answer {
         Ok(path) => path,
-        Err(_) => {
-            println!("\n\x1b[31mError\x1b[0m Something went wrong but I don't know what went wrong lol");
+        Err(e) => {
+            println!("\n\x1b[31mError\x1b[0m Something went wrong lol \x1b[1m\x1b[33m{e}\x1b[0m");
             exit(1);
         }
     }

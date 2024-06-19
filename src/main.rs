@@ -22,8 +22,8 @@ fn main() {
             exit(1);
         }
 
-        Err(_) => {
-            println!("Don't know what you did but the program threw an error");
+        Err(e) => {
+            println!("Don't know what you did but the program threw an error: \x1b[1m\x1b[33m{e}\x1b[0m");
             exit(1);
         }
     }
