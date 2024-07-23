@@ -3,13 +3,12 @@ name = "the_nuker"
 version = "0.1.0"
 edition = "2021"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
 jwalk = "0.8.1"
 num_cpus = "1.16.0"
 itertools = "0.11.0"
-inquire = "0.7.5"
+crossterm = "0.27.0"
+ratatui = "0.27.0"
 
 [profile.dev]
 debug = false
